@@ -1,0 +1,1 @@
+{"port": "COM4", "taxa": 230400, "auto_down": 0, "termrx": [1, "CR+LF (\\r\\n)"], "termtx": [2, "CR (\\r)"], "auto_log": 0, "flag_pack_fixo": 0, "pack_bytes": 0}

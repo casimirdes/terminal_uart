@@ -1,0 +1,1 @@
+{"port": "/dev/ttyUSB0", "taxa": 38400, "auto_down": 1, "termrx": [1, "CR+LF (\\r\\n)"], "termtx": [1, "CR+LF (\\r\\n)"], "auto_log": 0, "flag_pack_fixo": 0, "pack_bytes": 0}

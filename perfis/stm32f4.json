@@ -1,0 +1,1 @@
+{"port": "COM5", "taxa": 1000000, "auto_down": 1, "termrx": [0, "nada"], "termtx": [0, "nada"], "auto_log": 1, "flag_pack_fixo": 1, "pack_bytes": 512}
