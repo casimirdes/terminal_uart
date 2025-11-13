@@ -5,15 +5,14 @@
  ============================================================================
  Name			: terminal_uart
  Author			: matheus j. mella
- Version		: 0.2
- Date			: 29/10/25
+ Version		: 0.3
+ Date			: 12/11/25
  Description 	: terminal serial uart
  GitHub			: https://github.com/casimirdes/terminal_uart
  ============================================================================
-
-
 """
 
+VERSAO_APP = 0.3
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -333,12 +332,13 @@ def abrir_pasta_logs():
 def janela_sobre():
     janela = tk.Toplevel(root)
     janela.title("Sobre")
-    janela.geometry("290x110")
-    janela.maxsize(290, 110)
-    texto = """
+    janela.geometry("290x130")
+    janela.maxsize(290, 130)
+    texto = f"""
     Terminal serial uart, para delírio dos que curtem
+    Versão: {VERSAO_APP}
     Desenvolvido por casimirdes
-    Acesse o site:
+    Acesse o site galo véio:
     """
 
     label = tk.Label(janela, text=texto, justify="left")
@@ -523,25 +523,35 @@ def checksum_xor_u8(buf, size):
 
 def chama_serial():
     global TAXA, PORTA, UART_OK, FLAG_TIPO_RX, FLAG_TIPO_TX, FLAG_PACK_FIXO, SIZE_MAX_UARTRX
-    # global rx_thread  # novo
+    global rx_thread  # novo
     global serial_port
     global caminho_log_terminal
 
     if UART_OK:
+        """
         # verifica  porta serial e/ou se os outros timer foram ativados para desativar......
         UART_OK = False
         time.sleep(1)
+        serial_port.close()
         """
         if rx_thread.is_alive():
+            if UART_OK:
+                UART_OK = False
+                time.sleep(0.2)
+                serial_port.close()
             rx_thread.do_run = False
-            rx_thread.join()
-        """
-        # serial_port.close()
+            rx_thread.join(2)
+            print("Finalizado Thread rx_thread")
+        else:
+            UART_OK = False
+            if serial_port.is_open:
+                serial_port.close()
         print("PORTA SERIAL FECHADA")
         print("NUMERO TOTAL DE BYTES RECEBIDOS = %d" % BYTES_RX)
         print("NUMERO TOTAL DE BYTES TRANSMITIDOS = %d" % BYTES_TX)
 
         bt_connect.configure(bg="red")
+        bt_connect.configure(text="CONECTAR")
         st_status.set(sms1)
     else:
 
@@ -594,6 +604,7 @@ def chama_serial():
             """
 
             bt_connect.configure(bg="green")
+            bt_connect.configure(text="DESCONECTAR")
             # bt_connect.configure(state=DISABLED)
 
             st_status.set(sms2)
@@ -636,7 +647,6 @@ def registrar_logs_terminal(sms: str):
         # arquivo ja é fechado automaticamente!!!!
 
 
-
 def fun_rx_data_th():
     global BYTES_RX
 
@@ -676,119 +686,37 @@ def fun_rx_data_th():
                 time.sleep(0.001)  # evita busy-wait
         return pacote
 
-    while UART_OK:
-        if serial_port.is_open:
-            if terminacaox is None:
-                #pacote = ler_pacote_uart_loco()
-                pacote = ler_pacote_uart_cru()
-            else:
-                pacote = ler_pacote_uart_line()
-
-            if pacote:
-                print("bruto:", pacote)
-
-                try:
-                    sms_deco = pacote.decode("utf-8", errors="replace")
-                except Exception as err:
-                    sms_deco = f"erro:{err}, sms:{pacote}"
-
-                manda_text_terminal(sms_deco)
-                BYTES_RX += len(pacote)
-        update_status_bytes()
-
-
-def fun_rx_data_th_old():
-    global BYTES_RX
-    message = bytearray()
-    cont_erros = 0
-    while UART_OK:
-        try:
+    try:
+        while UART_OK:
             if serial_port.is_open:
-                while UART_OK:
-                    cont_bytes = 0
-                    message.clear()
+                if terminacaox is None:
+                    #pacote = ler_pacote_uart_loco()
+                    pacote = ler_pacote_uart_cru()
+                else:
+                    pacote = ler_pacote_uart_line()
 
-                    while not serial_port.in_waiting and UART_OK is True:
-                        time.sleep(0.01)  # 0.05 isso implica na velocidade da serial...
-                        # print("x")
+                if pacote:
+                    #print("bruto:", pacote)  # debug no terminal do bruto
+                    try:
+                        sms_deco = pacote.decode("utf-8", errors="replace")
+                    except Exception as err:
+                        sms_deco = f"erro:{err}, sms:{pacote}"
 
-                    while True:
-                        bytes_in = serial_port.in_waiting
-                        if bytes_in>0:
-                            result = serial_port.read(bytes_in)
-
-                            if not result:
-                                # cai fora pq nao tem mais nadaaa
-                                break
-
-                            cont_bytes += bytes_in
-                            message += result
-                            """
-                            if result:
-                                textbox.insert(END, result)
-                                #print("cont", cont)
-                            else:
-                                break
-                            """
-
-                            time.sleep(0.001)  # 0.01
-                        else:
-                            break
-
-                    # print("len message", len(message))
-                    # textbox.insert(END, message.decode(encoding="utf-8"))
-
-                    if cont_bytes > 0:
-                        if FLAG_VALIDACAO_PACK:
-                            # --------------------------------------------------------------------------------------
-                            size = message[0] << 8 | message[1]
-                            checksum1 = message[2]
-                            if size < 513:
-                                if cont_bytes == size + 3:
-                                    checksum2 = checksum_xor_u8(message[3::], size)
-                                else:
-                                    cont_erros += 1
-                                    checksum2 = 0
-                            else:
-                                cont_erros += 1
-                                checksum2 = 0
-                            sms = f"len message:{cont_bytes}/{len(message)}, size:{size}, checksum:{checksum1}=={checksum2}, cont_erros:{cont_erros}"
-                            #terminal_text.insert(tk.END, sms)
-                            manda_text_terminal(sms)
-                            # --------------------------------------------------------------------------------------
-                        else:
-
-                            print("bruto:", message)
-                            try:
-                                sms_deco = message.decode(encoding="utf-8")
-                            except Exception as err:
-                                sms_deco = f"erro:{err}, sms:{message}"
-                            #terminal_text.insert(tk.END, sms_deco)
-                            manda_text_terminal(sms_deco)
-
-                        BYTES_RX += cont_bytes  # teste de contagem numero de bytes
-                        # time.sleep(0.001)
-                    update_status_bytes()  # st_bytes_rx.set("RX (%u)" % BYTES_RX)
-                # serial_port.flushInput() #flush input buffer, discarding all its contents
-                # serial_port.flushOutput()#flush output buffer, aborting current output
-
-            update_status_bytes()  #st_bytes_rx.set("RX (%u)" % BYTES_RX)
-        except Exception as err:
-            cont_erros += 1
-            sms_erro = f"erro except... nao tratado:, err:{err}, UART_OK:{UART_OK}, len:{len(message)}, cont_erros:{cont_erros}, serial_open:{serial_port.is_open}"
-            manda_text_terminal(sms_erro)
-            """
-            pc sonequinhaaa e acho que desativa a serial... e ai entra loop maluco
-            erro except... nao tratado: ClearCommError failed (PermissionError(13, 'Acesso negado.', None, 5)) 0 838558
-            erro except... nao tratado: ClearCommError failed (PermissionError(13, 'Acesso negado.', None, 5)) 0 838559
-            erro except... nao tratado: ClearCommError failed (PermissionError(13, 'Acesso negado.', None, 5)) 0 838560
-            erro except... nao tratado: ClearCommError failed (PermissionError(13, 'Acesso negado.', None, 5)) 0 838561
-            """
+                    manda_text_terminal(sms_deco)
+                    BYTES_RX += len(pacote)
+            update_status_bytes()
+    except Exception as err:
+        sms_erro = f"erro except... nao tratado:, err:{err}, UART_OK:{UART_OK}, serial_open:{serial_port.is_open}"
+        manda_text_terminal(sms_erro)
+    # pc sonequinhaaa e acho que desativa a serial... e ai entra loop maluco
+    # tratar... # ClearCommError failed (PermissionError(13, 'Acesso negado.', None, 5)) 0 838558
+    """
     if not UART_OK:
         serial_port.close()
         sms_byby = "fecha porta serial"
         manda_text_terminal(sms_byby)
-    print("saio do thread RX_DATA_th")
+    """
+    print("saindo fora fun_rx_data_th()...")
 
 
 def envia_serial():
@@ -849,16 +777,17 @@ def limpa_text_terminal():
 
 
 def manda_text_terminal(sms: str):
-
     sms_ajustado = sms.rstrip('\r\n') + '\n'
+    try:
+        terminal_text.insert(tk.END, sms_ajustado)
 
-    terminal_text.insert(tk.END, sms_ajustado)
+        if auto_down.get():  # retona um int...
+            terminal_text.yview(tk.END)  # configura o auto-relagem!!!!!
 
-    if auto_down.get():  # retona um int...
-        terminal_text.yview(tk.END)  # configura o auto-relagem!!!!!
-
-    if auto_log.get():
-        registrar_logs_terminal(sms_ajustado)
+        if auto_log.get():
+            registrar_logs_terminal(sms_ajustado)
+    except Exception as err:
+        print(f"erro except manda_text_terminal:{err}")
 
 # ======================================================================================================
 # ======================================================================================================
