@@ -1,18 +1,16 @@
-#!/usr/local/bin/python3
-# -*- coding: utf-8 -*-
 
 """
  ============================================================================
  Name			: terminal_uart
  Author			: matheus j. mella
- Version		: 0.3
- Date			: 12/11/25
+ Version		: 0.4
+ Date			: 21/01/26
  Description 	: terminal serial uart
  GitHub			: https://github.com/casimirdes/terminal_uart
  ============================================================================
 """
 
-VERSAO_APP = 0.3
+VERSAO_APP = 0.4
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -197,7 +195,6 @@ def janela_edicao_perfil(nome_perfil=None, dados_existentes=None):
             return
 
         caminho_novo = os.path.join(PASTA_PERFIS, f"{nome_perfil2}.json")
-
         if os.path.exists(caminho_novo) and nome_perfil2 != nome_perfil:
             messagebox.showerror("Erro", "Já existe um perfil com esse nome.")
             return
@@ -221,7 +218,7 @@ def janela_edicao_perfil(nome_perfil=None, dados_existentes=None):
         with open(caminho_novo, "w") as f:
             json.dump(dados, f)  # , indent=4
 
-        messagebox.showinfo("Salvo", f"Perfil '{nome_perfil}' salvo com sucesso.")
+        messagebox.showinfo("Salvo", f"Perfil '{nome_perfil2}' salvo com sucesso.") # aaaaaaaaaaaaaaaaaaaaa
         janela_edicao.destroy()
         atualizar_menu_perfis()
 
@@ -332,14 +329,9 @@ def abrir_pasta_logs():
 def janela_sobre():
     janela = tk.Toplevel(root)
     janela.title("Sobre")
-    janela.geometry("290x130")
-    janela.maxsize(290, 130)
-    texto = f"""
-    Terminal serial uart, para delírio dos que curtem
-    Versão: {VERSAO_APP}
-    Desenvolvido por casimirdes
-    Acesse o site galo véio:
-    """
+    janela.geometry("330x130")
+    janela.maxsize(330, 130)
+    texto = f"""Terminal serial uart, para delírio dos que curtem\nVersão: {VERSAO_APP}\nDesenvolvido por casimirdes\nAcesse o site galo véio:\n"""
 
     label = tk.Label(janela, text=texto, justify="left")
     label.pack()  # pady=5
@@ -534,18 +526,24 @@ def chama_serial():
         time.sleep(1)
         serial_port.close()
         """
+        """
         if rx_thread.is_alive():
             if UART_OK:
                 UART_OK = False
                 time.sleep(0.2)
                 serial_port.close()
-            rx_thread.do_run = False
-            rx_thread.join(2)
+            #rx_thread.do_run = False
+            #rx_thread.join(2)
             print("Finalizado Thread rx_thread")
         else:
             UART_OK = False
             if serial_port.is_open:
                 serial_port.close()
+        """
+        UART_OK = False
+        time.sleep(0.2)  # sair da rotina que está travado no while
+        if serial_port.is_open:
+            serial_port.close()
         print("PORTA SERIAL FECHADA")
         print("NUMERO TOTAL DE BYTES RECEBIDOS = %d" % BYTES_RX)
         print("NUMERO TOTAL DE BYTES TRANSMITIDOS = %d" % BYTES_TX)
@@ -610,7 +608,7 @@ def chama_serial():
             st_status.set(sms2)
 
             print("iniciando a thread")
-            rx_thread = th.Thread(target=fun_rx_data_th)  # chama a funcao real_time_adc para thread
+            rx_thread = th.Thread(target=fun_rx_data_th, daemon=True)  # chama a funcao real_time_adc para thread
             # ws_thread = th.Thread(target=websocket_thread, args=("websocket thread",))  # chama a funcao real_time_adc para thread
             rx_thread.start()
 
@@ -838,7 +836,7 @@ finally:
     # verifica  porta serial e/ou se os outros timer foram ativados para desativar......
     if UART_OK:
         UART_OK = False
-        time.sleep(2)
+        #time.sleep(0.5)
         """
         if rx_thread.is_alive():
             rx_thread.do_run = False
